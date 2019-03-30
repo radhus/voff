@@ -25,7 +25,7 @@ func (d *device) Close() error {
 	return d.file.Close()
 }
 
-func (d *device) Poke() error {
+func (d *device) Kick() error {
 	// Borrowed from github.com/gokrazy/gokrazy
 	_, _, errno := unix.Syscall(
 		unix.SYS_IOCTL,

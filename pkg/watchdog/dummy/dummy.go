@@ -26,7 +26,7 @@ func (d *dummy) Close() error {
 	return nil
 }
 
-func (d *dummy) Poke() error {
-	d.logger.Println("Poke")
+func (d *dummy) Kick() error {
+	d.logger.Println("Kick")
 	return nil
 }

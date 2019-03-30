@@ -35,7 +35,7 @@ func main() {
 	devicePath := flag.String("device", "/dev/watchdog", "Watchdog device")
 	dryRun := flag.Bool("dry-run", false, "Don't touch the watchdog device")
 	check := flag.String("check", "", "Command to execute to check status")
-	interval := flag.Int("interval", 60, "Interval (seconds) to check and poke the watchdog")
+	interval := flag.Int("interval", 60, "Interval (seconds) to check and kick the watchdog")
 
 	flag.Parse()
 
@@ -69,7 +69,7 @@ func main() {
 		log.Println("Running check...")
 		if triggerCheck(*check) {
 			log.Println("Check successful, poking watchdog")
-			device.Poke()
+			device.Kick()
 		} else {
 			log.Println("Check unsuccessful!")
 		}
