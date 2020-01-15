@@ -65,7 +65,7 @@ func main() {
 	}
 
 	tick := time.Tick(time.Duration(*interval) * time.Second)
-	for _ = range tick {
+	for range tick {
 		log.Println("Running check...")
 		if triggerCheck(*check) {
 			log.Println("Check successful, poking watchdog")
