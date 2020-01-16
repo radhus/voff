@@ -1,23 +1,19 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"os"
-	"os/exec"
 	"time"
 
+	"github.com/radhus/voff/pkg/config"
+	"github.com/radhus/voff/pkg/prober"
 	"github.com/radhus/voff/pkg/watchdog"
 	"github.com/radhus/voff/pkg/watchdog/dummy"
 )
-
-func triggerCheck(cmd string) bool {
-	fork := exec.Command("sh", "-c", cmd)
-	output, err := fork.CombinedOutput()
-	log.Printf("Command output:\n%s\n", string(output))
-	return err == nil
-}
 
 func failWithUsage(msg string) {
 	fmt.Println("Error:", msg)
@@ -25,38 +21,60 @@ func failWithUsage(msg string) {
 	fmt.Println(
 		"Usage:",
 		os.Args[0],
-		"-device /dev/watchdog -check \"ping -c 1 127.0.0.1\"",
+		"-config /etc/voff.yaml",
 	)
 	flag.PrintDefaults()
 	os.Exit(1)
 }
 
-func main() {
-	devicePath := flag.String("device", "/dev/watchdog", "Watchdog device")
-	dryRun := flag.Bool("dry-run", false, "Don't touch the watchdog device")
-	check := flag.String("check", "", "Command to execute to check status")
-	interval := flag.Int("interval", 60, "Interval (seconds) to check and kick the watchdog")
+func loop(ctx context.Context, device watchdog.Device, errCh <-chan error, interval time.Duration) {
+	for {
+		select {
+		case <-ctx.Done():
+			log.Print("Error: context closed: ", ctx.Err())
+			return
+		case err := <-errCh:
+			log.Print("Error: probe failed: ", err)
+			return
+		case <-time.After(interval):
+			err := device.Kick()
+			if err != nil {
+				log.Print("Error kicking watchdog, ignoring: ", err)
+			}
+			continue
+		}
+	}
+}
 
+func main() {
+	configFile := flag.String("config", "", "Path to config file")
+	dryRun := flag.Bool("dry-run", false, "Don't touch the watchdog device")
 	flag.Parse()
 
-	if *check == "" {
-		failWithUsage("-check is mandatory")
+	if *configFile == "" {
+		failWithUsage("-config is mandatory")
 	}
-	if !triggerCheck(*check) {
-		log.Fatalln("Command failed initial check")
+
+	configData, err := ioutil.ReadFile(*configFile)
+	if err != nil {
+		log.Fatal("Couldn't read config file:", err)
+	}
+	config, err := config.ReadConfig(configData)
+	if err != nil {
+		log.Fatal("Couldn't parse config file:", err)
 	}
 
 	var device watchdog.Device
 	if !*dryRun {
-		devStat, err := os.Stat(*devicePath)
+		devStat, err := os.Stat(config.Watchdog.Device)
 		if err != nil {
 			log.Fatal("Couldn't stat watchdog device:", err)
 		}
 		if devStat.Mode()&os.ModeDevice == 0 {
-			failWithUsage("-device must point to a device file")
+			log.Fatal("Watchdog device path must point to a device file!")
 		}
 
-		device, err = watchdog.Open(*devicePath)
+		device, err = watchdog.Open(config.Watchdog.Device)
 		if err != nil {
 			log.Fatal("Couldn't open watchdog:", err)
 		}
@@ -64,14 +82,21 @@ func main() {
 		device = dummy.New("dummy")
 	}
 
-	tick := time.Tick(time.Duration(*interval) * time.Second)
-	for range tick {
-		log.Println("Running check...")
-		if triggerCheck(*check) {
-			log.Println("Check successful, poking watchdog")
-			device.Kick()
-		} else {
-			log.Println("Check unsuccessful!")
-		}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	errCh := make(chan error)
+
+	for _, probe := range config.Probes {
+		prober := prober.New(probe)
+		go func() {
+			errCh <- prober.Run(ctx)
+		}()
 	}
+
+	interval := time.Duration(config.Watchdog.IntervalSeconds) * time.Second
+	loop(ctx, device, errCh, interval)
+
+	cancel()
+	log.Fatal("Exiting")
 }

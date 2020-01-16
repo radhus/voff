@@ -1,0 +1,12 @@
+watchdog:
+  device: /dev/watchdog
+  intervalSeconds: 1
+probes:
+  - exec:
+      command:
+        - true
+  - exec:
+      command:
+        - false
+    failureThreshold: 10
+    periodSeconds: 1
