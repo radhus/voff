@@ -38,8 +38,8 @@ Voff is configured with a YAML file with two top-level keys:
 
 ### `probes`
 
-A list of one or many probes, inspired by [Kubernetes container probes](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#probe-v1-core)
-where each can have the following keys:
+A list of one or many probes, inspired by [Kubernetes container probes](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.10/#probe-v1-core),
+where each probe can have the following keys:
 
 - `exec`
   - `command`: list of command arguments to run, at least one required.
