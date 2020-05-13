@@ -10,7 +10,6 @@ const (
 	defaultFailureThreshold = 3
 	defaultTimeoutSeconds   = 1
 	defaultPeriodSeconds    = 10
-	defaultSuccessThreshold = 1
 	defaultWatchdogPath     = "/dev/watchdog"
 	defaultIntervalSeconds  = 1
 )
