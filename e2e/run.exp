@@ -1,0 +1,16 @@
+#!/usr/bin/expect -f
+
+set timeout 10
+set config [lindex $argv 0];
+
+spawn qemu-system-x86_64 -m 128M -kernel /boot/vmlinuz-lts -initrd /tmp/initramfs -nographic -append "console=ttyS0 config=/usr/src/$config" -serial stdio -watchdog i6300esb -watchdog-action poweroff -monitor none
+
+expect "=== Starting"
+
+
+expect {
+    "=== Terminated" { exp_continue }
+    timeout { exit 4 }
+}
+
+wait
