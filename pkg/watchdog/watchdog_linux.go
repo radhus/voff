@@ -2,6 +2,8 @@ package watchdog
 
 import (
 	"os"
+	"syscall"
+	"unsafe"
 
 	"golang.org/x/sys/unix"
 )
@@ -25,15 +27,18 @@ func (d *device) Close() error {
 	return d.file.Close()
 }
 
-func (d *device) Kick() error {
-	// Borrowed from github.com/gokrazy/gokrazy
+func (d *device) ioctl(signal uintptr, data unsafe.Pointer) syscall.Errno {
 	_, _, errno := unix.Syscall(
 		unix.SYS_IOCTL,
 		d.file.Fd(),
-		unix.WDIOC_KEEPALIVE,
-		0,
+		signal,
+		uintptr(data),
 	)
-	if errno != 0 {
+	return errno
+}
+
+func (d *device) Kick() error {
+	if errno := d.ioctl(unix.WDIOC_KEEPALIVE, nil); errno != 0 {
 		return errno
 	}
 	return nil
