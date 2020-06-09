@@ -1,6 +1,8 @@
 package watchdog
 
 import (
+	"bytes"
+	"log"
 	"os"
 	"syscall"
 	"unsafe"
@@ -12,15 +14,33 @@ type device struct {
 	file *os.File
 }
 
+type linux_info struct {
+	_        uint32 // options
+	_        uint32 // firmware_version
+	identity [32]byte
+}
+
 func Open(path string) (Device, error) {
 	file, err := os.OpenFile(path, os.O_WRONLY, 0)
 	if err != nil {
 		return nil, err
 	}
 
-	return &device{
+	d := &device{
 		file: file,
-	}, nil
+	}
+
+	info := linux_info{}
+	errno := d.ioctl(unix.WDIOC_GETSUPPORT, unsafe.Pointer(&info))
+
+	if errno != 0 {
+		return nil, errno
+	}
+
+	identity := string(bytes.Trim(info.identity[:], "\x00"))
+	log.Println("Watchdog identity:", identity)
+
+	return d, nil
 }
 
 func (d *device) Close() error {
