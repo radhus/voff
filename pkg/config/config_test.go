@@ -16,6 +16,7 @@ probes:
       command:
         - true
     failureThreshold: 5
+    startupThreshold: 10
     initialDelaySeconds: 3
     periodSeconds: 4
     timeoutSeconds: 6
@@ -23,6 +24,7 @@ probes:
       command:
         - true
     failureThreshold: 5
+    startupThreshold: 10
     initialDelaySeconds: 3
     periodSeconds: 4
     timeoutSeconds: 6
@@ -41,6 +43,7 @@ probes:
 		assert.NotNil(t, probe.Exec)
 		assert.Equal(t, []string{"true"}, probe.Exec.Command)
 		assert.Equal(t, 5, probe.FailureThreshold)
+		assert.Equal(t, 10, probe.StartupThreshold)
 		assert.Equal(t, 3, probe.InitialDelaySeconds)
 		assert.Equal(t, 4, probe.PeriodSeconds)
 		assert.Equal(t, 6, probe.TimeoutSeconds)
@@ -70,6 +73,7 @@ probes:
 		assert.NotNil(t, probe.Exec)
 		assert.Equal(t, []string{"true"}, probe.Exec.Command)
 		assert.Equal(t, 3, probe.FailureThreshold)
+		assert.Equal(t, 0, probe.StartupThreshold)
 		assert.Equal(t, 0, probe.InitialDelaySeconds)
 		assert.Equal(t, 10, probe.PeriodSeconds)
 		assert.Equal(t, 1, probe.TimeoutSeconds)

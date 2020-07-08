@@ -54,6 +54,8 @@ func (p *prober) Run(ctx context.Context) error {
 		time.Sleep(time.Duration(p.config.InitialDelaySeconds) * time.Second)
 	}
 
+	startup := p.config.StartupThreshold > 0
+
 	periodDuration := time.Duration(p.config.PeriodSeconds) * time.Second
 	failureCount := 0
 	for {
@@ -62,9 +64,15 @@ func (p *prober) Run(ctx context.Context) error {
 			failureCount++
 		} else {
 			failureCount = 0
+			startup = false
 		}
 
-		if failureCount >= p.config.FailureThreshold {
+		threshold := p.config.FailureThreshold
+		if startup {
+			threshold = p.config.StartupThreshold
+		}
+
+		if failureCount >= threshold {
 			return err
 		}
 

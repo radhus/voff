@@ -55,6 +55,7 @@ type Probe struct {
 	// TCPSocket interface{} `yaml:"tcpSocket`
 
 	FailureThreshold    int `yaml:"failureThreshold"`
+	StartupThreshold    int `yaml:"startupThreshold"`
 	InitialDelaySeconds int `yaml:"initialDelaySeconds"`
 	PeriodSeconds       int `yaml:"periodSeconds"`
 	TimeoutSeconds      int `yaml:"timeoutSeconds"`
@@ -72,6 +73,9 @@ func (p *Probe) validate() error {
 	}
 	if p.FailureThreshold < 1 {
 		return errors.New("Probe failureThreshold needs to be at least 1")
+	}
+	if p.StartupThreshold < 0 {
+		return errors.New("Probe startupThreshold need to be positive")
 	}
 	if p.InitialDelaySeconds < 0 {
 		return errors.New("Probe initialDelaySeconds need to be positive")
