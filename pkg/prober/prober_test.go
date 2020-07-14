@@ -195,6 +195,56 @@ func TestRun_WithFailureThreshold(t *testing.T) {
 	assert.Equal(t, 3*time.Second, diff)
 }
 
+func TestRun_WithStartupThreshold_SurvivesStartup(t *testing.T) {
+	sequence := []probeFunc{
+		fakeFailImmediately,
+		fakeFailImmediately,
+		fakeSucceedImmediately,
+		fakeFailImmediately,
+	}
+	ctx, probeFunc := withSequence(&sequence)
+	p := newWithProbeFunc(&config.Probe{
+		TimeoutSeconds:   1,
+		PeriodSeconds:    1,
+		FailureThreshold: 1,
+		StartupThreshold: 3,
+	}, probeFunc)
+
+	before := time.Now()
+	err := p.Run(ctx)
+	after := time.Now()
+	diff := after.Sub(before).Truncate(time.Second)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, errFakeFailed, err)
+	assert.Equal(t, 3*time.Second, diff)
+}
+
+func TestRun_WithStartupThreshold_FailsDuringStartup(t *testing.T) {
+	sequence := []probeFunc{
+		fakeFailImmediately,
+		fakeFailImmediately,
+		fakeFailImmediately,
+		fakeSucceedImmediately,
+	}
+	ctx, probeFunc := withSequence(&sequence)
+	p := newWithProbeFunc(&config.Probe{
+		TimeoutSeconds:   1,
+		PeriodSeconds:    1,
+		FailureThreshold: 1,
+		StartupThreshold: 3,
+	}, probeFunc)
+
+	before := time.Now()
+	err := p.Run(ctx)
+	after := time.Now()
+	diff := after.Sub(before).Truncate(time.Second)
+
+	assert.NotNil(t, err)
+	assert.Equal(t, errFakeFailed, err)
+	assert.Equal(t, 2*time.Second, diff)
+}
+
 func TestRun_WithTimeout(t *testing.T) {
 	p := newWithProbeFunc(&config.Probe{
 		TimeoutSeconds:   1,
